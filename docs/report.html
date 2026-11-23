@@ -25,7 +25,7 @@
 <body>
 
 <h1>Job Runner &mdash; Term Project Report</h1>
-<div class="sub">SOC 3010 Operating Systems, Inha University in Tashkent, Fall 2026 &middot; Team <b>12</b> <span class="todo">TODO: team number</span></div>
+<div class="sub">SOC 3010 Operating Systems, Inha University in Tashkent, Fall 2026 &middot; Team <b>6</b> &middot; Axmedov Shaxriyor</div>
 
 <h2>1. Design in one diagram</h2>
 <svg viewBox="0 0 720 290" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="11">
@@ -99,48 +99,54 @@
 
 <h2>3. The policy and a trace that proves it</h2>
 <p><b>Priority with aging.</b> The next job is the QUEUED one with the highest effective priority <code>min(9, priority + seconds_waited / AGING)</code>, ties going to the older job; aging guarantees that a priority-0 job cannot starve behind a stream of higher-priority work.</p>
-<p>Trace from <code>tests/policy_trace.sh</code> (real run, Ubuntu, one worker with K=1, AGING=1 s so the effect shows within seconds). T12-1 (<code>sleep 4</code>) keeps the worker busy while T12-2&hellip;6 queue up; T12-7&hellip;10 (priority 5) keep arriving every 2.5 s:</p>
-<pre>job T12-2 "echo starver" priority 0     job T12-5 "echo high"  priority 9
-job T12-3 "echo low"     priority 0     job T12-6 "echo mid-b" priority 5
-job T12-4 "echo mid-a"   priority 5     T12-7..10 "sleep 2; echo late-N" priority 5
-dispatch T12-1 -> worker 1 (priority 0, effective 0, waited 0 ms)
-dispatch T12-5 -> worker 1 (priority 9, effective 9, waited 3751 ms, 5 queued left)
-dispatch T12-4 -> worker 1 (priority 5, effective 8, waited 3819 ms, 4 queued left)
-dispatch T12-6 -> worker 1 (priority 5, effective 8, waited 3834 ms, 3 queued left)
-dispatch T12-7 -> worker 1 (priority 5, effective 6, waited 1362 ms, 2 queued left)
-dispatch T12-2 -> worker 1 (priority 0, effective 5, waited 5988 ms, 2 queued left)
-dispatch T12-3 -> worker 1 (priority 0, effective 6, waited 6032 ms, 1 queued left)
-dispatch T12-8 -> worker 1 (priority 5, effective 5, waited 989 ms, 0 queued left)</pre>
-<p>Priority 9 runs first; the two priority-5 jobs follow in submission order; T12-7 (priority 5, effective 6) still beats the priority-0 jobs. But by the time T12-7 finishes, the starver T12-2 has aged to effective 5 and wins the tie against the newer priority-5 job T12-8, which runs last: no starvation.</p>
+<p>Trace from <code>tests/policy_trace.sh</code> (real run, Ubuntu, one worker with K=1, AGING=1 s so the effect shows within seconds). T6-1 (<code>sleep 4</code>) keeps the worker busy while T6-2&hellip;6 queue up; T6-7&hellip;10 (priority 5) keep arriving every 2.5 s:</p>
+<pre>job T6-2 "echo starver" priority 0     job T6-5 "echo high"  priority 9
+job T6-3 "echo low"     priority 0     job T6-6 "echo mid-b" priority 5
+job T6-4 "echo mid-a"   priority 5     T6-7..10 "sleep 2; echo late-N" priority 5
+dispatch T6-1 -> worker 1 (priority 0, effective 0, waited 0 ms, 0 queued left)
+dispatch T6-5 -> worker 1 (priority 9, effective 9, waited 3781 ms, 5 queued left)
+dispatch T6-4 -> worker 1 (priority 5, effective 8, waited 3828 ms, 4 queued left)
+dispatch T6-6 -> worker 1 (priority 5, effective 8, waited 3865 ms, 3 queued left)
+dispatch T6-7 -> worker 1 (priority 5, effective 6, waited 1401 ms, 2 queued left)
+dispatch T6-2 -> worker 1 (priority 0, effective 5, waited 5975 ms, 2 queued left)
+dispatch T6-3 -> worker 1 (priority 0, effective 6, waited 6011 ms, 1 queued left)
+dispatch T6-8 -> worker 1 (priority 5, effective 6, waited 1027 ms, 0 queued left)</pre>
+<p>Priority 9 runs first; the two priority-5 jobs follow in submission order; T6-7 (priority 5, effective 6) still beats the priority-0 jobs. But by the time T6-7 finishes, the starver T6-2 has aged to effective 5 and wins the tie against the newer priority-5 job T6-8 (still at 5 then, because it had waited less than 1 s), which runs after both old jobs: no starvation.</p>
 
 <h2>4. Part 2: the journal</h2>
 <p><b>Line format</b> (<code>jobs.log</code>, written only with <code>journal_append()</code>, i.e. one <code>write</code> + <code>fsync</code>, under the table mutex):</p>
-<pre>SUBMIT T12-7 &lt;timeout&gt; &lt;priority&gt; &lt;escaped command&gt;
-STATE T12-7 &lt;QUEUED | RUNNING | DONE 0 | KILLED TIMEOUT | KILLED SIGNAL 9 | CANCELLED&gt;</pre>
+<pre>SUBMIT T6-7 &lt;timeout&gt; &lt;priority&gt; &lt;escaped command&gt;
+STATE T6-7 &lt;QUEUED | RUNNING | DONE 0 | KILLED TIMEOUT | KILLED SIGNAL 9 | CANCELLED&gt;</pre>
 <p><b>Write first, then answer.</b> <code>handle_submit()</code> appends the SUBMIT line, then adds the job to the table, then sends the id. Every state change goes through <code>job_set_state()</code>, which appends the STATE line before changing the table. A job's output is written to <code>out/&lt;id&gt;</code> and fsync'ed before its final STATE line.</p>
 <p><b>Restart, in order</b> (<code>recover()</code>, before the first <code>accept</code>): (1) <code>journal_open()</code> cuts a torn last line; (2) every line is replayed with <code>apply()</code>, which only changes the table, never writes, and skips lines it does not understand; (3) every job still RUNNING gets a <code>STATE &hellip; QUEUED</code> line and waits for a worker; (4) the next id is the last SUBMIT plus one. Row 13, real run: the journal when the server was killed with <code>kill -9</code>, and the restart:</p>
-<pre>SUBMIT T12-1 10 0 echo a          server: listening on port 5000
-STATE T12-1 RUNNING               server: state T12-2 RUNNING -> QUEUED
-STATE T12-1 DONE 0                server: recovered 3 jobs from jobs.log (6 lines, 0 skipped):
-SUBMIT T12-2 20 0 sleep 4                 2 queued, of them 1 were RUNNING; next id T12-4
-STATE T12-2 RUNNING               server: dispatch T12-2 -> worker 1 ...
-SUBMIT T12-3 10 0 echo c          server: state T12-2 RUNNING -> DONE 0 ... T12-3 ... DONE 0</pre>
+<pre>SUBMIT T6-1 10 0 echo a          server: listening on port 5000
+STATE T6-1 RUNNING               server: state T6-2 RUNNING -> QUEUED
+STATE T6-1 DONE 0                server: recovered 3 jobs from jobs.log (6 lines, 0 skipped):
+SUBMIT T6-2 20 0 sleep 4                 2 queued, of them 1 were RUNNING; next id T6-4
+STATE T6-2 RUNNING               server: dispatch T6-2 -> worker 1 ...
+SUBMIT T6-3 10 0 echo c          server: state T6-2 RUNNING -> DONE 0 ... T6-3 ... DONE 0</pre>
 <p><b>A command that must not run twice:</b> <code>echo 100 &gt;&gt; balance.txt</code>. If the server dies while it is RUNNING, the first run may already have appended its line; after the restart the job runs again from the start and appends a second one. The same holds for anything with a side effect outside its own output: sending an e-mail, making a payment, <code>mv</code> of a file that the first run already moved.</p>
 
 <h2>5. One real failure</h2>
-<div class="todo"><b>TODO (team):</b> describe one failure you really had while building or running this project: what went wrong, <b>your own log lines</b> (from <code>server.log</code>/<code>worker.log</code> or <code>tests/logs/</code>), how you found the cause, and what you changed. The examiner reads this as evidence that you ran the system yourselves; do not invent it.</div>
+<p><b>What went wrong: our own test of row 12 passed when the server was broken.</b> Row 12 kills the server with SIGTERM and starts a new one on the same port at once; it must start without <code>Address already in use</code>. To survive the moment when the old server is still closing, our server retries <code>bind()</code> for up to 3 s. Our first <code>selfcheck.sh</code> waited 2 s and then checked only two things: the new process is alive, and its log has no <code>Address already in use</code>. While the server is still retrying it is alive and has printed nothing yet, so the row passed whether or not the port was ever obtained.</p>
+<p><b>How we found it.</b> Reviewing the test against the server code, the 3 s retry and the 2 s wait did not fit together. We reproduced it by holding port 5000 with <code>nc -l</code> (an "old server" that never leaves) and starting <code>./server 5000</code>. Our log of that run (<code>docs/evidence/row12-false-pass.txt</code>, reproduced by <code>tests/repro_row12.sh</code>):</p>
+<pre>old check after 2 s:  alive=yes  'Address already in use' lines=0  -> PASS
+server2.log at 2 s: []
+new check after 2 s: first line must be 'server: listening on port 5000' -> FAIL
+server2.log at 4 s: [server: cannot listen on port 5000: Address already in use]</pre>
+<p><b>What we changed.</b> Row 12 in <code>tests/selfcheck.sh</code> now passes only if the new server's first line is exactly <code>server: listening on port 5000</code>, i.e. it really holds the port. The lesson: a check must look for the evidence of success, not for the absence of an error message, because "nothing printed yet" looks the same as "no error".</p>
 
 <h2>6. Who owns what</h2>
+<p>Team 6 has one member. As Details 1 requires of a team smaller than five, all five components are still declared, and the one member owns all of them and answers for each at the fair.</p>
 <table class="avoid">
 <tr><th>Component</th><th>Owner</th><th>Main code</th></tr>
-<tr><td>Protocol and client</td><td class="todo">Name Surname</td><td><code>src/client.c</code>, <code>src/common.c</code>, <code>docs/PROTOCOL.md</code></td></tr>
-<tr><td>Scheduler and policy</td><td class="todo">Name Surname</td><td><code>policy_next()</code>, <code>dispatch()</code> in <code>src/server.c</code></td></tr>
-<tr><td>Worker and limits</td><td class="todo">Name Surname</td><td><code>src/worker.c</code></td></tr>
-<tr><td>Durability and recovery</td><td class="todo">Name Surname</td><td>job table, <code>job_set_state()</code>, <code>apply()</code>, <code>recover()</code></td></tr>
-<tr><td>Operations and report</td><td class="todo">Name Surname</td><td><code>Makefile</code>, <code>README.md</code>, this report</td></tr>
-<tr><td>Testing and load (teams of six)</td><td class="todo">Name Surname</td><td><code>tests/</code></td></tr>
+<tr><td>Protocol and client</td><td>Axmedov Shaxriyor</td><td><code>src/client.c</code>, <code>src/common.c</code>, <code>docs/PROTOCOL.md</code></td></tr>
+<tr><td>Scheduler and policy</td><td>Axmedov Shaxriyor</td><td><code>policy_next()</code>, <code>dispatch()</code> in <code>src/server.c</code></td></tr>
+<tr><td>Worker and limits</td><td>Axmedov Shaxriyor</td><td><code>src/worker.c</code></td></tr>
+<tr><td>Durability and recovery</td><td>Axmedov Shaxriyor</td><td>job table, <code>job_set_state()</code>, <code>apply()</code>, <code>recover()</code></td></tr>
+<tr><td>Operations and report (incl. testing and load)</td><td>Axmedov Shaxriyor</td><td><code>Makefile</code>, <code>README.md</code>, <code>tests/</code>, this report</td></tr>
 </table>
-<p>Team leader: <span class="todo">Name Surname</span>. This table agrees with <code>README.md</code>.</p>
+<p>Team leader: Axmedov Shaxriyor. This table agrees with <code>README.md</code>.</p>
 
 </body>
 </html>

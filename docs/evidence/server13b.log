@@ -1,0 +1,24 @@
+server: listening on port 5000
+server: state T6-2 RUNNING -> QUEUED
+server: recovered 3 jobs from jobs.log (6 lines, 0 skipped): 2 queued, of them 1 were RUNNING; next id T6-4
+server: policy priority, aging 5 s per level, job ids T6-<n>, journal jobs.log
+server: connection from 127.0.0.1:49506
+server: worker 1 connected from 127.0.0.1:49506, K=1
+server: state T6-2 QUEUED -> RUNNING
+server: dispatch T6-2 -> worker 1 (priority 0, effective 0, waited 485 ms, 1 queued left, policy priority)
+server: state T6-2 RUNNING -> DONE 0
+server: job T6-2 finished on worker 1: EXIT 0, 0 bytes of output
+server: state T6-3 QUEUED -> RUNNING
+server: dispatch T6-3 -> worker 1 (priority 0, effective 0, waited 4508 ms, 0 queued left, policy priority)
+server: state T6-3 RUNNING -> DONE 0
+server: job T6-3 finished on worker 1: EXIT 0, 2 bytes of output
+server: connection from 127.0.0.1:59344
+server: connection from 127.0.0.1:59350
+server: connection from 127.0.0.1:59362
+server: connection from 127.0.0.1:59364
+server: connection from 127.0.0.1:59378
+server: connection from 127.0.0.1:59384
+server: job T6-4 accepted: "echo d" timeout 10 s, priority 0
+server: state T6-4 QUEUED -> RUNNING
+server: dispatch T6-4 -> worker 1 (priority 0, effective 0, waited 1 ms, 0 queued left, policy priority)
+server: SIGTERM received, closing port 5000 and exiting

@@ -1,0 +1,4 @@
+old check after 2 s:  alive=yes  'Address already in use' lines=0  -> PASS
+server2.log at 2 s: []
+new check after 2 s: first line must be 'server: listening on port 5000' -> FAIL
+server2.log at 4 s: [server: cannot listen on port 5000: Address already in use]

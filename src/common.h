@@ -10,10 +10,10 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-/* Team number: every job id starts with it (T12-1, T12-2, ...).
+/* Team number: every job id starts with it (T6-1, T6-2, ...).
  * Change it here or build with: make clean && make TEAM=7 */
 #ifndef TEAM
-#define TEAM 12
+#define TEAM 6
 #endif
 
 #define MSG_MAX     8192                /* longest protocol line, '\n' excluded */

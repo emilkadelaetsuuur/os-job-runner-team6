@@ -3,7 +3,7 @@
 # make clean && make TEAM=7 -> job ids become T7-1, T7-2, ...
 
 CC     = gcc
-TEAM  ?= 12
+TEAM  ?= 6
 CFLAGS = -Wall -Wextra -O2 -pthread -DTEAM=$(TEAM)
 
 all: server worker client

@@ -1,0 +1,38 @@
+  PASS  row 1: three executables, two start lines
+  PASS  row 2: echo hello -> 'T6-1 DONE 0' / 'hello'
+  PASS  row 3: exit 3 / ls -> 'T6-2 DONE 3' / 'T6-3 DONE 2'
+  PASS  row 4: timeout -> 'T6-4 KILLED TIMEOUT', pgrep ''
+  PASS  row 5: cancel -> 'T6-5 RUNNING' / 'T6-5 CANCELLED' / 'T6-5 CANCELLED', pgrep ''
+  PASS  row 6: K=1: max 1 running at once, all done: yes
+  PASS  row 7: 8 clients: 8 different ids, 8 DONE 0
+  PASS  row 8: silent nc does not block a submit -> 'T6-17'
+  PASS  row 9: unknown id -> 'T12-99999 UNKNOWN', exit 2
+  PASS  row 10: no zombie children of the worker
+  PASS  row 11: descriptors server 8 -> 8, worker 6 -> 6
+  PASS  row 12: SIGTERM -> 'T6-118 KILLED SIGNAL 9', pgrep '', worker gone yes, server gone yes, new server up yes
+  PASS  row 13: after kill -9: 'T6-1 DONE 0' / 'T6-2 DONE 0' / 'T6-3 DONE 0', fetch 'a' 'c', new id T6-4
+
+13 passed, 0 failed (logs in tests/logs/)
+===TRACE
+--- jobs ---
+job T6-1 accepted: "sleep 4" timeout 10 s, priority 0
+job T6-2 accepted: "echo starver" timeout 10 s, priority 0
+job T6-3 accepted: "echo low" timeout 10 s, priority 0
+job T6-4 accepted: "echo mid-a" timeout 10 s, priority 5
+job T6-5 accepted: "echo high" timeout 10 s, priority 9
+job T6-6 accepted: "echo mid-b" timeout 10 s, priority 5
+job T6-7 accepted: "sleep 2; echo late-1" timeout 10 s, priority 5
+job T6-8 accepted: "sleep 2; echo late-2" timeout 10 s, priority 5
+job T6-9 accepted: "sleep 2; echo late-3" timeout 10 s, priority 5
+job T6-10 accepted: "sleep 2; echo late-4" timeout 10 s, priority 5
+--- dispatch order ---
+dispatch T6-1 -> worker 1 (priority 0, effective 0, waited 0 ms, 0 queued left, policy priority)
+dispatch T6-5 -> worker 1 (priority 9, effective 9, waited 3781 ms, 5 queued left, policy priority)
+dispatch T6-4 -> worker 1 (priority 5, effective 8, waited 3828 ms, 4 queued left, policy priority)
+dispatch T6-6 -> worker 1 (priority 5, effective 8, waited 3865 ms, 3 queued left, policy priority)
+dispatch T6-7 -> worker 1 (priority 5, effective 6, waited 1401 ms, 2 queued left, policy priority)
+dispatch T6-2 -> worker 1 (priority 0, effective 5, waited 5975 ms, 2 queued left, policy priority)
+dispatch T6-3 -> worker 1 (priority 0, effective 6, waited 6011 ms, 1 queued left, policy priority)
+dispatch T6-8 -> worker 1 (priority 5, effective 6, waited 1027 ms, 0 queued left, policy priority)
+dispatch T6-9 -> worker 1 (priority 5, effective 5, waited 563 ms, 0 queued left, policy priority)
+dispatch T6-10 -> worker 1 (priority 5, effective 5, waited 102 ms, 0 queued left, policy priority)

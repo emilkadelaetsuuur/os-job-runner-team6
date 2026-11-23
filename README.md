@@ -1,17 +1,19 @@
 # Job runner — SOC 3010 Operating Systems term project
 
-**Team number:** 12  <!-- TODO: your real team number, here AND in src/common.h (TEAM) -->
+**Team number:** 6 (job ids are T6-1, T6-2, ...)
 
-**Team leader:** _Name Surname_
+**Team leader:** Axmedov Shaxriyor
 
-| Component                         | Owner           |
-|-----------------------------------|-----------------|
-| Protocol and client               | _Name Surname_  |
-| Scheduler and policy              | _Name Surname_  |
-| Worker and limits                 | _Name Surname_  |
-| Durability and recovery           | _Name Surname_  |
-| Operations and report             | _Name Surname_  |
-| Testing and load (teams of six)   | _Name Surname_  |
+The team has one member, so, as Details 1 asks of a team smaller than five,
+all five components are still declared and one member owns them all.
+
+| Component                                   | Owner             |
+|---------------------------------------------|-------------------|
+| Protocol and client                         | Axmedov Shaxriyor |
+| Scheduler and policy                        | Axmedov Shaxriyor |
+| Worker and limits                           | Axmedov Shaxriyor |
+| Durability and recovery                     | Axmedov Shaxriyor |
+| Operations and report (incl. testing/load)  | Axmedov Shaxriyor |
 
 ## Build
 
@@ -61,6 +63,8 @@ kill -USR1 <server pid>            # print the whole job table
 | `tests/selfcheck.sh`    | rows 1–13, unattended                                        |
 | `tests/load8.sh`        | eight clients at once                                        |
 | `tests/policy_trace.sh` | the scheduling trace for the report                          |
+| `tests/repro_row12.sh`  | reproduces the failure described in report section 5         |
+| `docs/evidence/`        | logs of real runs quoted in the report                       |
 
 ## Design in six lines
 

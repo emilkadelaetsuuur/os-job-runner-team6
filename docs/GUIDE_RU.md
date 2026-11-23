@@ -6,9 +6,9 @@
 make
 ./server 5000 &
 ./worker 127.0.0.1 5000 1 &
-./client 127.0.0.1 5000 submit "echo hello" 10      # -> T12-1
-./client 127.0.0.1 5000 status T12-1                # -> T12-1 DONE 0
-./client 127.0.0.1 5000 fetch T12-1                 # -> hello
+./client 127.0.0.1 5000 submit "echo hello" 10      # -> T6-1
+./client 127.0.0.1 5000 status T6-1                # -> T6-1 DONE 0
+./client 127.0.0.1 5000 fetch T6-1                 # -> hello
 ./tests/selfcheck.sh                                # все 13 проверок
 ./tests/policy_trace.sh                             # трасса политики для отчёта
 ```
@@ -40,10 +40,10 @@ make
 
 **Durability: «Покажите строку, которая пишется ДО ответа»** (будут спрашивать точно)
 `server.c:363` в `handle_submit()`: `journal_append(journal_fd, line)` строки
-`SUBMIT T12-7 …`, и только после неё `apply_submit()` и `send_line(fd, "ID …")`.
+`SUBMIT T6-7 …`, и только после неё `apply_submit()` и `send_line(fd, "ID …")`.
 Для всех смен состояния — `job_set_state()` (`server.c:249`): строка
-`STATE T12-7 DONE 0` пишется в журнал (`server.c:260`), потом `apply_state()`.
-Вывод задачи пишется в `out/T12-7` с `fsync` (`save_output()`, `server.c:505`)
+`STATE T6-7 DONE 0` пишется в журнал (`server.c:260`), потом `apply_state()`.
+Вывод задачи пишется в `out/T6-7` с `fsync` (`save_output()`, `server.c:505`)
 до того, как задача записана в журнал как завершённая.
 
 **«Что происходит при перезапуске?»** `recover()`, `server.c:639`, по порядку:
