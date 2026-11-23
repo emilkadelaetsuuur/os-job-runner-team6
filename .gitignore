@@ -1,0 +1,7 @@
+/server
+/worker
+/client
+*.o
+/jobs.log
+/out/
+/tests/logs/

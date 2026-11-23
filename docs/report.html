@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job Runner Report</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm 14mm 15mm; }
+  :root { --ink:#1b1f24; --muted:#5a6470; --line:#cfd5dc; --accent:#1f4e79; --todo:#fff3c4; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 9.6pt; line-height: 1.38; color: var(--ink); background:#fff; margin:0; }
+  h1 { font-size: 15pt; margin: 0 0 2px; color: var(--accent); }
+  .sub { color: var(--muted); margin-bottom: 10px; }
+  h2 { font-size: 11.5pt; color: var(--accent); border-bottom: 1.5px solid var(--accent); padding-bottom: 2px; margin: 14px 0 6px; }
+  p { margin: 4px 0 6px; }
+  table { border-collapse: collapse; width: 100%; margin: 4px 0 8px; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #eef2f6; }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 8.4pt; }
+  pre { background: #f5f7f9; border: 1px solid var(--line); padding: 5px 7px; margin: 4px 0 8px; white-space: pre-wrap; }
+  .todo { background: var(--todo); border: 1px solid #e0c060; padding: 6px 8px; }
+  ol, ul { margin: 3px 0 6px 18px; padding: 0; }
+  li { margin: 1px 0; }
+  .avoid { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>Job Runner &mdash; Term Project Report</h1>
+<div class="sub">SOC 3010 Operating Systems, Inha University in Tashkent, Fall 2026 &middot; Team <b>12</b> <span class="todo">TODO: team number</span></div>
+
+<h2>1. Design in one diagram</h2>
+<svg viewBox="0 0 720 290" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="11">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1f4e79"/></marker></defs>
+  <!-- machine A -->
+  <rect x="8" y="8" width="365" height="274" rx="8" fill="#f3f6fa" stroke="#1f4e79"/>
+  <text x="18" y="26" font-weight="bold" fill="#1f4e79">Machine A (laptop / VM 1): ./server 5000</text>
+  <rect x="20" y="38" width="168" height="40" rx="4" fill="#fff" stroke="#888"/>
+  <text x="28" y="55">main thread: poll() on listen</text><text x="28" y="70">socket + signal self-pipe</text>
+  <rect x="200" y="38" width="162" height="70" rx="4" fill="#fff" stroke="#888"/>
+  <text x="208" y="55">one thread per connection:</text><text x="208" y="70">client threads, worker threads</text><text x="208" y="85">(first line HELLO = worker)</text><text x="208" y="100" fill="#5a6470">accept() starts each one</text>
+  <rect x="20" y="92" width="168" height="108" rx="4" fill="#fff" stroke="#1f4e79" stroke-width="1.5"/>
+  <text x="28" y="110" font-weight="bold">job table (one mutex)</text>
+  <text x="28" y="126">jobs[] + queue[] of QUEUED</text>
+  <text x="28" y="141">job_set_state(): journal,</text>
+  <text x="28" y="155">then apply, then answer</text>
+  <text x="28" y="171">policy_next(): priority+aging</text>
+  <text x="28" y="186">dispatch(): to freest worker</text>
+  <line x1="200" y1="95" x2="190" y2="118" stroke="#1f4e79" marker-end="url(#a)"/>
+  <rect x="20" y="222" width="80" height="44" rx="4" fill="#fff8e6" stroke="#b07d00"/>
+  <text x="28" y="240" font-weight="bold">jobs.log</text><text x="28" y="255">append+fsync</text>
+  <rect x="108" y="222" width="80" height="44" rx="4" fill="#fff8e6" stroke="#b07d00"/>
+  <text x="116" y="240" font-weight="bold">out/T12-n</text><text x="116" y="255">job outputs</text>
+  <line x1="60" y1="200" x2="60" y2="221" stroke="#b07d00" marker-end="url(#a)"/>
+  <line x1="148" y1="200" x2="148" y2="221" stroke="#b07d00" marker-end="url(#a)"/>
+  <text x="200" y="232" fill="#5a6470">on disk, in the directory the</text>
+  <text x="200" y="246" fill="#5a6470">server was started from; replayed</text>
+  <text x="200" y="260" fill="#5a6470">by recover() before first accept()</text>
+  <!-- machine B -->
+  <rect x="470" y="8" width="242" height="188" rx="8" fill="#f3f8f3" stroke="#2e7d32"/>
+  <text x="480" y="26" font-weight="bold" fill="#2e7d32">Machine B (laptop / VM 2)</text>
+  <text x="480" y="42">./worker &lt;IP of A&gt; 5000 K</text>
+  <rect x="482" y="52" width="218" height="44" rx="4" fill="#fff" stroke="#888"/>
+  <text x="490" y="70">one poll() loop: server socket,</text><text x="490" y="85">job pipes, SIGCHLD/SIGTERM pipe</text>
+  <rect x="482" y="106" width="218" height="80" rx="4" fill="#fff" stroke="#888"/>
+  <text x="490" y="124">run_job(): fork + exec /bin/sh -c</text>
+  <text x="490" y="139">each job = own process group</text>
+  <text x="490" y="154">stdout + stderr -&gt; pipe</text>
+  <text x="490" y="169">timeout / cancel: kill(-pgid)</text>
+  <!-- client -->
+  <rect x="470" y="214" width="242" height="68" rx="8" fill="#f8f3fa" stroke="#6a1b9a"/>
+  <text x="480" y="232" font-weight="bold" fill="#6a1b9a">./client (any machine)</text>
+  <text x="480" y="248">one request, one answer, exit code</text>
+  <text x="480" y="264">submit | status | cancel | fetch</text>
+  <!-- connections -->
+  <line x1="482" y1="66" x2="364" y2="62" stroke="#2e7d32" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="380" y="54" fill="#2e7d32" font-size="10">TCP 5000</text>
+  <text x="380" y="80" fill="#2e7d32" font-size="10">worker connects</text>
+  <line x1="470" y1="240" x2="364" y2="100" stroke="#6a1b9a" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="378" y="200" fill="#6a1b9a" font-size="10">TCP 5000</text>
+  <text x="378" y="213" fill="#6a1b9a" font-size="10">client connects</text>
+</svg>
+<p>The server listens on one TCP port. Workers connect to it (so only the server's port must be reachable) and announce K; the server keeps a free-slot count per worker. All job records live in one table in the server, protected by one mutex; the journal <code>jobs.log</code> and the per-job output files <code>out/&lt;id&gt;</code> live on the server's disk.</p>
+
+<h2>2. The protocol</h2>
+<p>One line per message, ending in <code>\n</code>, read through a buffer in a loop. Commands are escaped (<code>\\</code>, <code>\n</code>, <code>\r</code>) so they always fit in one line.</p>
+<table class="avoid">
+<tr><th>Message</th><th>Fields</th><th>Sender &rarr; receiver</th><th>Answer</th></tr>
+<tr><td><code>SUBMIT</code></td><td>timeout, priority, command</td><td>client &rarr; server</td><td><code>ID T12-7</code></td></tr>
+<tr><td><code>STATUS</code></td><td>id</td><td>client &rarr; server</td><td><code>STATE T12-7 DONE 0</code> (any of the six states)</td></tr>
+<tr><td><code>CANCEL</code></td><td>id</td><td>client &rarr; server</td><td><code>CANCELLED T12-7</code> or <code>FINISHED T12-7</code></td></tr>
+<tr><td><code>FETCH</code></td><td>id</td><td>client &rarr; server</td><td><code>OUTPUT &lt;n&gt;</code> + n raw bytes, or <code>NOTFINISHED T12-7</code></td></tr>
+<tr><td>(any, bad id)</td><td>&mdash;</td><td>server &rarr; client</td><td><code>UNKNOWN &lt;id&gt;</code>; malformed: <code>ERROR &lt;text&gt;</code></td></tr>
+<tr><td><code>HELLO</code></td><td>K</td><td>worker &rarr; server</td><td>none; first line of a worker connection</td></tr>
+<tr><td><code>RUN</code></td><td>id, timeout, command</td><td>server &rarr; worker</td><td>later <code>DONE</code></td></tr>
+<tr><td><code>CANCEL</code></td><td>id</td><td>server &rarr; worker</td><td>later <code>DONE &hellip; CANCELLED</code></td></tr>
+<tr><td><code>DONE</code></td><td>id, kind (EXIT/TIMEOUT/CANCELLED/SIGNAL), code, n</td><td>worker &rarr; server</td><td>none; n raw output bytes follow; frees the slot</td></tr>
+<tr><td><code>BYE</code></td><td>&mdash;</td><td>worker &rarr; server</td><td>none; sent after SIGTERM, after all DONEs</td></tr>
+</table>
+<p><b>How the answer to fetch ends:</b> it does not need an end marker. <code>OUTPUT &lt;n&gt;</code> is a length prefix; the client reads exactly n bytes with <code>read_exact()</code> and writes them unchanged, so output with many lines and no final newline arrives byte for byte.</p>
+
+<h2>3. The policy and a trace that proves it</h2>
+<p><b>Priority with aging.</b> The next job is the QUEUED one with the highest effective priority <code>min(9, priority + seconds_waited / AGING)</code>, ties going to the older job; aging guarantees that a priority-0 job cannot starve behind a stream of higher-priority work.</p>
+<p>Trace from <code>tests/policy_trace.sh</code> (real run, Ubuntu, one worker with K=1, AGING=1 s so the effect shows within seconds). T12-1 (<code>sleep 4</code>) keeps the worker busy while T12-2&hellip;6 queue up; T12-7&hellip;10 (priority 5) keep arriving every 2.5 s:</p>
+<pre>job T12-2 "echo starver" priority 0     job T12-5 "echo high"  priority 9
+job T12-3 "echo low"     priority 0     job T12-6 "echo mid-b" priority 5
+job T12-4 "echo mid-a"   priority 5     T12-7..10 "sleep 2; echo late-N" priority 5
+dispatch T12-1 -> worker 1 (priority 0, effective 0, waited 0 ms)
+dispatch T12-5 -> worker 1 (priority 9, effective 9, waited 3751 ms, 5 queued left)
+dispatch T12-4 -> worker 1 (priority 5, effective 8, waited 3819 ms, 4 queued left)
+dispatch T12-6 -> worker 1 (priority 5, effective 8, waited 3834 ms, 3 queued left)
+dispatch T12-7 -> worker 1 (priority 5, effective 6, waited 1362 ms, 2 queued left)
+dispatch T12-2 -> worker 1 (priority 0, effective 5, waited 5988 ms, 2 queued left)
+dispatch T12-3 -> worker 1 (priority 0, effective 6, waited 6032 ms, 1 queued left)
+dispatch T12-8 -> worker 1 (priority 5, effective 5, waited 989 ms, 0 queued left)</pre>
+<p>Priority 9 runs first; the two priority-5 jobs follow in submission order; T12-7 (priority 5, effective 6) still beats the priority-0 jobs. But by the time T12-7 finishes, the starver T12-2 has aged to effective 5 and wins the tie against the newer priority-5 job T12-8, which runs last: no starvation.</p>
+
+<h2>4. Part 2: the journal</h2>
+<p><b>Line format</b> (<code>jobs.log</code>, written only with <code>journal_append()</code>, i.e. one <code>write</code> + <code>fsync</code>, under the table mutex):</p>
+<pre>SUBMIT T12-7 &lt;timeout&gt; &lt;priority&gt; &lt;escaped command&gt;
+STATE T12-7 &lt;QUEUED | RUNNING | DONE 0 | KILLED TIMEOUT | KILLED SIGNAL 9 | CANCELLED&gt;</pre>
+<p><b>Write first, then answer.</b> <code>handle_submit()</code> appends the SUBMIT line, then adds the job to the table, then sends the id. Every state change goes through <code>job_set_state()</code>, which appends the STATE line before changing the table. A job's output is written to <code>out/&lt;id&gt;</code> and fsync'ed before its final STATE line.</p>
+<p><b>Restart, in order</b> (<code>recover()</code>, before the first <code>accept</code>): (1) <code>journal_open()</code> cuts a torn last line; (2) every line is replayed with <code>apply()</code>, which only changes the table, never writes, and skips lines it does not understand; (3) every job still RUNNING gets a <code>STATE &hellip; QUEUED</code> line and waits for a worker; (4) the next id is the last SUBMIT plus one. Row 13, real run: the journal when the server was killed with <code>kill -9</code>, and the restart:</p>
+<pre>SUBMIT T12-1 10 0 echo a          server: listening on port 5000
+STATE T12-1 RUNNING               server: state T12-2 RUNNING -> QUEUED
+STATE T12-1 DONE 0                server: recovered 3 jobs from jobs.log (6 lines, 0 skipped):
+SUBMIT T12-2 20 0 sleep 4                 2 queued, of them 1 were RUNNING; next id T12-4
+STATE T12-2 RUNNING               server: dispatch T12-2 -> worker 1 ...
+SUBMIT T12-3 10 0 echo c          server: state T12-2 RUNNING -> DONE 0 ... T12-3 ... DONE 0</pre>
+<p><b>A command that must not run twice:</b> <code>echo 100 &gt;&gt; balance.txt</code>. If the server dies while it is RUNNING, the first run may already have appended its line; after the restart the job runs again from the start and appends a second one. The same holds for anything with a side effect outside its own output: sending an e-mail, making a payment, <code>mv</code> of a file that the first run already moved.</p>
+
+<h2>5. One real failure</h2>
+<div class="todo"><b>TODO (team):</b> describe one failure you really had while building or running this project: what went wrong, <b>your own log lines</b> (from <code>server.log</code>/<code>worker.log</code> or <code>tests/logs/</code>), how you found the cause, and what you changed. The examiner reads this as evidence that you ran the system yourselves; do not invent it.</div>
+
+<h2>6. Who owns what</h2>
+<table class="avoid">
+<tr><th>Component</th><th>Owner</th><th>Main code</th></tr>
+<tr><td>Protocol and client</td><td class="todo">Name Surname</td><td><code>src/client.c</code>, <code>src/common.c</code>, <code>docs/PROTOCOL.md</code></td></tr>
+<tr><td>Scheduler and policy</td><td class="todo">Name Surname</td><td><code>policy_next()</code>, <code>dispatch()</code> in <code>src/server.c</code></td></tr>
+<tr><td>Worker and limits</td><td class="todo">Name Surname</td><td><code>src/worker.c</code></td></tr>
+<tr><td>Durability and recovery</td><td class="todo">Name Surname</td><td>job table, <code>job_set_state()</code>, <code>apply()</code>, <code>recover()</code></td></tr>
+<tr><td>Operations and report</td><td class="todo">Name Surname</td><td><code>Makefile</code>, <code>README.md</code>, this report</td></tr>
+<tr><td>Testing and load (teams of six)</td><td class="todo">Name Surname</td><td><code>tests/</code></td></tr>
+</table>
+<p>Team leader: <span class="todo">Name Surname</span>. This table agrees with <code>README.md</code>.</p>
+
+</body>
+</html>
